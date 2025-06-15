@@ -1,5 +1,5 @@
 "use client";
-
+import { supabase } from "@/lib/supabaseClient.ts";
 import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,25 @@ import { Toaster, toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 const MotionButton = motion(Button);
 
-export default function Home() {
+
+import { useRouter } from "next/navigation";
+export default function Editor() {
+
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (!data.session) {
+        router.replace("/login");
+      } else {
+        setLoading(false);
+      }
+    };
+    checkAuth();
+  }, []);
+  
   const [articleHeadingInput, setArticleHeadingInput] = useState("");
   const [articleHeading, setArticleHeading] = useState("");
   const [imgUrlInput, setImgUrlInput] = useState("");
@@ -111,7 +129,24 @@ export default function Home() {
     transition: { duration: 0.3, ease: "easeInOut" },
   };
 
+  const handleSaveArticleToSupabase = async () => {
+    const { error } = await supabase.from("Nannuru_articles_table").insert({
+      Heading: articleHeading,
+      subHeading: articleContent,
+      imgUrl,
+      created_at: new Date().toISOString(),
+    });
+  
+    if (error) {
+      toast.error("Failed to save to Supabase");
+      console.error(error);
+    } else {
+      toast.success("Saved to Supabase!");
+    }
+  };
   const [tabValue, setTabValue] = useState("link");
+  
+  if (loading) return null;
   return (
     <>
       <Toaster richColors position="top-right" />
@@ -218,6 +253,7 @@ export default function Home() {
               >
                 🖼️ Add Image
               </MotionButton>
+              
             </DrawerTrigger>
             <DrawerContent>
               <DrawerHeader>
@@ -316,6 +352,10 @@ export default function Home() {
               </Tabs>
             </DrawerContent>{" "}
           </Drawer>
+          <Button onClick={handleSaveArticleToSupabase}>
+            📤 Upload to Supabase
+          </Button>
+
         </Card>
 
         <footer className="mt-4">
