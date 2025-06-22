@@ -30,8 +30,12 @@ export default function SignUpPage() {
     >
       <Card className="w-full max-w-md p-8 rounded-2xl shadow-2xl space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">Create an account 📝</h1>
-          <p className="text-sm text-muted-foreground">Sign up to get started</p>
+          <h1 className="text-3xl font-bold mb-2 flex w-full">
+            Create an account 📝
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Sign up to get started
+          </p>
         </div>
 
         <form onSubmit={handleSignUp} className="space-y-4">
