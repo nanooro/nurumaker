@@ -31,7 +31,7 @@ export default function LoginPage() {
         setError(error.message);
       }
     } else {
-      router.push("/editor");
+      window.location.href = "https://maker.nannuru.com/editor";
     }
   };
 
