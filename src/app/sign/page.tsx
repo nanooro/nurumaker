@@ -13,13 +13,24 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const router = useRouter();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) setError(error.message);
-    else router.push("/editor");
+    setError("");
+    setSuccess("");
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setSuccess("✅ Almost done! Check your email to confirm your account.");
+    }
   };
 
   return (
@@ -30,12 +41,8 @@ export default function SignUpPage() {
     >
       <Card className="w-full max-w-md p-8 rounded-2xl shadow-2xl space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2 flex w-full">
-            Create an account 📝
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Sign up to get started
-          </p>
+          <h1 className="text-3xl font-bold mb-2">Create your account</h1>
+          <p className="text-sm text-muted-foreground">Sign up to get started</p>
         </div>
 
         <form onSubmit={handleSignUp} className="space-y-4">
@@ -44,15 +51,18 @@ export default function SignUpPage() {
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
           />
           <Input
             type="password"
-            placeholder="Create a password"
+            placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
 
           {error && <p className="text-sm text-red-500">{error}</p>}
+          {success && <p className="text-sm text-green-500">{success}</p>}
 
           <Button type="submit" className="w-full">
             Sign up

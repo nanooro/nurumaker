@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -16,12 +17,22 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.auth.signInWithPassword({
+    setError("");
+
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    if (error) setError(error.message);
-    else router.push("/editor");
+
+    if (error) {
+      if (error.message.toLowerCase().includes("invalid login credentials")) {
+        setError("Wrong email or password. Make sure your email is verified.");
+      } else {
+        setError(error.message);
+      }
+    } else {
+      router.push("/editor");
+    }
   };
 
   return (
@@ -34,29 +45,31 @@ export default function LoginPage() {
         <h2 className="text-2xl font-bold text-center">🔐 Login</h2>
         <form
           onSubmit={handleLogin}
-          className="flex justify-center items-center flex-col space-y-3"
+          className="flex flex-col items-center space-y-3"
         >
           <Input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
           />
           <Input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
           {error && <p className="text-sm text-red-500">{error}</p>}
           <Button type="submit" className="w-full">
             Login
           </Button>
-          <h3 className="flex">
-            No account?,
-            <a href="/sign" className="ml-1">
-              <p className="underline"> Sign up!</p>
-            </a>
+          <h3 className="text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link href="/sign" className="underline text-primary ml-1">
+              Sign up
+            </Link>
           </h3>
         </form>
       </Card>
