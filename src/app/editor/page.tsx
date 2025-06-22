@@ -353,7 +353,7 @@ export default function Editor() {
             </DrawerContent>{" "}
           </Drawer>
           <Button onClick={handleSaveArticleToSupabase}>
-            📤 Upload to Supabase
+            📤 Publish to Nannuru
           </Button>
 
         </Card>
