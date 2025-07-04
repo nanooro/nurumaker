@@ -1,36 +1,46 @@
-// app/page.tsx
-
-
 "use client";
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
+import { useTheme } from "next-themes";
+import { Moon, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return null;
+
   return (
     <motion.main
-      className="min-h-screen flex items-center justify-center bg-background px-4"
+      className="min-h-screen flex items-center justify-center bg-background px-4 relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
+      <button
+        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        className="absolute top-4 right-4 p-2 rounded-full bg-muted hover:bg-muted/70 transition"
+      >
+        {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      </button>
+
       <Card className="p-6 max-w-xl w-full text-center space-y-4 shadow-xl rounded-2xl">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-transparent bg-clip-text">
           Welcome to Your Article App ✨
         </h1>
         <p className="text-muted-foreground text-sm">
-          Create, preview, and share your own articles with image and content
-          support.
+          Create, preview, and share your own articles with image and content support.
         </p>
         <Link href="/login">
           <Button size="lg" className="text-lg">
             📝 Go to Editor
           </Button>
         </Link>
-        {/* <footer className="pt-6 text-xs text-muted-foreground">
-          Built with 🧠 by you · Powered by Next.js + Tailwind
-        </footer> */}
       </Card>
     </motion.main>
   );

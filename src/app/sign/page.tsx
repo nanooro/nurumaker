@@ -5,75 +5,87 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
-import Link from "next/link";
+import { Label } from "@/components/ui/label";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { motion } from "framer-motion";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
+    setLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
     });
 
-    if (error) {
-      setError(error.message);
-    } else {
-      setSuccess("✅ Almost done! Check your email to confirm your account.");
-    }
+    setLoading(false);
+
+    if (error) setError(error.message);
+    else setSuccess("✅ Check your email to confirm your account.");
   };
 
   return (
     <motion.main
-      className="min-h-screen flex items-center justify-center bg-muted px-4"
+      className="min-h-screen flex items-center justify-center bg-background px-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <Card className="w-full max-w-md p-8 rounded-2xl shadow-2xl space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">Create your account</h1>
-          <p className="text-sm text-muted-foreground">Sign up to get started</p>
+      <Card className="w-full max-w-md p-8 shadow-2xl rounded-2xl border border-border bg-card">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-transparent bg-clip-text">
+            Sign up
+          </h1>
+          <ThemeToggle />
         </div>
 
         <form onSubmit={handleSignUp} className="space-y-4">
-          <Input
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <Input
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
 
           {error && <p className="text-sm text-red-500">{error}</p>}
           {success && <p className="text-sm text-green-500">{success}</p>}
 
-          <Button type="submit" className="w-full">
-            Sign up
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Creating account..." : "Sign up"}
           </Button>
         </form>
 
-        <p className="text-sm text-center text-muted-foreground">
+        <p className="text-sm text-center text-muted-foreground mt-4">
           Already have an account?{" "}
-          <Link href="/login" className="text-primary underline">
+          <a href="/login" className="text-primary underline">
             Sign in
-          </Link>
+          </a>
         </p>
       </Card>
     </motion.main>
