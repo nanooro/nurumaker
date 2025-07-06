@@ -1,135 +1,260 @@
 "use client";
-import Link from "next/link";
-import Header from "@/components/ui/header";
-import { useTheme } from "next-themes";
-import Share from "@/components/ui/share";
-import SocialCard from "@/components/ui/socialCard";
-import ArticleCard from "@/components/ui/articleCard";
-import Image from "next/image";
-import Head from "next/head";
-import { useEffect, useState } from "react";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { Toaster, toast } from "sonner";
+import { motion } from "framer-motion";
+import ArticleCard from "@/components/ui/articleCard";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import ArticleRead from "@/components/ui/articleRead";
 
-export default function ArticleRead({ id }: { id: string }) {
-  const { setTheme, theme } = useTheme();
-
-  const [article, setArticle] = useState<any>(null);
-  const [moreArticles, setMoreArticles] = useState<any[]>([]);
+export default function Editor() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState("");
+  const [articleHeadingInput, setArticleHeadingInput] = useState("");
+  const [articleHeading, setArticleHeading] = useState("");
+  const [imgUrlInput, setImgUrlInput] = useState("");
+  const [imgUrl, setImgUrl] = useState("");
+  const [imgUrlError, setImgUrlError] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [articleDate, setArticleDate] = useState("");
+  const [tab, setTab] = useState("card");
+  const [articleContentInput, setArticleContentInput] = useState("");
+  const [articleContent, setArticleContent] = useState("");
+  const [tabValue, setTabValue] = useState("file");
+  const [myArticles, setMyArticles] = useState([]);
 
   useEffect(() => {
-    const fetchArticle = async () => {
-      if (!id) return;
-
-      const { data, error } = await supabase
-        .from("Nannuru_articles_table")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (!error && data) {
-        setArticle(data);
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) router.replace("/login");
+      else {
+        setUserId(data.session.user.id);
+        setLoading(false);
+        fetchUserArticles(data.session.user.id);
       }
     };
+    checkAuth();
 
-    const fetchMoreArticles = async () => {
-      const { data, error } = await supabase
-        .from("Nannuru_articles_table")
-        .select("id, Heading, imgUrl, date, rating")
-        .neq("id", id)
-        .limit(4);
-
-      if (!error && data) {
-        setMoreArticles(data);
-      }
-    };
-
-    fetchArticle();
-    fetchMoreArticles();
-  }, [id]);
-
-  const currentUrl = `https://nannuru.com/articles/${id}`;
-
-  if (!article)
-    return (
-      <div className="text-center mt-20 text-lg text-gray-500 animate-pulse">
-        Loading article...
-      </div>
+    const now = new Date();
+    setArticleDate(
+      now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
     );
+
+    const saved = localStorage.getItem("savedArticle");
+    if (saved) {
+      const data = JSON.parse(saved);
+      setArticleHeading(data.heading);
+      setImgUrl(data.imgUrl);
+      setArticleDate(data.date);
+    }
+  }, [router]);
+
+  const fetchUserArticles = async (uid: string) => {
+    const { data, error } = await supabase
+      .from("Nannuru_articles_table")
+      .select("*")
+      .eq("user_id", uid)
+      .eq("is_archived", false);
+    if (!error && data) setMyArticles(data);
+  };
+
+  const validateUrl = (url: string) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleImgUrlSet = () => {
+    if (validateUrl(imgUrlInput)) {
+      setImgUrl(imgUrlInput);
+      setImgUrlError("");
+      toast.success("Image URL set!");
+    } else {
+      setImgUrlError("Invalid URL");
+      toast.error("Invalid image URL");
+    }
+  };
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (!file) return;
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `uploads/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("article-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      toast.error("Upload failed");
+      return;
+    }
+
+    const { data } = supabase.storage
+      .from("article-images")
+      .getPublicUrl(filePath);
+
+    if (data?.publicUrl) {
+      setImgUrl(data.publicUrl);
+      setSelectedFile(file);
+      toast.success("Image uploaded!");
+    }
+  };
+
+  const handleSaveArticleToSupabase = async () => {
+    if (!articleHeading.trim()) {
+      toast.error("Heading is required");
+      return;
+    }
+
+    const { error } = await supabase.from("Nannuru_articles_table").insert({
+      Heading: articleHeading,
+      subHeading: articleContent,
+      imgUrl,
+      created_at: new Date().toISOString(),
+      user_id: userId,
+      is_archived: false,
+    });
+
+    if (error) toast.error("Failed to save");
+    else {
+      toast.success("Saved to Supabase!");
+      fetchUserArticles(userId);
+    }
+  };
+
+  if (loading) return null;
 
   return (
     <>
-      <Header setTheme={setTheme} theme={theme} />
-      <Head>
-        <meta
-          property="og:image"
-          content={article.imgUrl}
-          key={`og-image-${article.id}`}
-        />
-        <link
-          rel="image_src"
-          href={article.imgUrl}
-          key={`image-src-${article.id}`}
-        />
-      </Head>
-      <div className="p-4 max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold">{article.Heading}</h1>
-        <div className="w-full h-auto flex">
-          <p className="text-sm text-gray-500 m-2">{article.date}</p>
-          <Share id={id} className="ml-auto" />
-        </div>
-        <Image
-          src={article.imgUrl}
-          alt=""
-          width={800}
-          height={400}
-          className="my-4 w-full rounded"
-        />
-        <p>{article.subHeading}</p>
-        <p>{article.content}</p>
+      <Toaster richColors position="top-right" />
+      <div className="flex flex-col p-2 gap-4 items-center w-full min-h-screen">
+        <ThemeToggle className="self-end mr-4" />
 
-        <div className="flex justify-center items-center mt-12">
-          <p>End</p>
-        </div>
+        <Card className="p-4 space-y-4 w-full max-w-3xl">
+          <Tabs value={tab} onValueChange={setTab} className="w-full">
+            <TabsList className="w-full justify-center">
+              <TabsTrigger value="card">Card</TabsTrigger>
+              <TabsTrigger value="read">Read</TabsTrigger>
+            </TabsList>
 
-        <hr className="my-4 border-t border-gray-300" />
+            <TabsContent value="card">
+              <motion.div key="card" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded border p-2 dark:bg-black bg-white">
+                <ArticleCard Heading={articleHeading} date={articleDate} imgUrl={imgUrl} />
+              </motion.div>
+            </TabsContent>
 
-        <fieldset className="mt-20 mb-20">
-          <legend className="text-3xl font-bold text-gray-700 mb-6 text-center">
-            Share this article ❤️
-          </legend>
-          <div className="flex-wrap gap-2 scale-110 flex justify-center items-center">
-            <SocialCard
-              linkUrl={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                currentUrl
-              )}`}
-              imgUrl="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg"
-              name="facebook"
-            />
-            <SocialCard
-              linkUrl={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                currentUrl
-              )}`}
-              imgUrl="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"
-              name="whatsapp"
-            />
-          </div>
-        </fieldset>
+            <TabsContent value="read">
+              <motion.div key="read" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded border p-2 dark:bg-black bg-white">
+                <ArticleRead heading={articleHeading} date={articleDate} imgUrl={imgUrl} content={articleContent} />
+              </motion.div>
+            </TabsContent>
+          </Tabs>
 
-        <div className="flex-wrap gap-4 justify-center mt-24 flex">
-          <h2 className="text-xl font-bold w-full text-center mb-6">
-            More Articles
-          </h2>
-          {moreArticles.map((article) => (
-            <Link href={`/articles/${article.id}`} key={article.id}>
-              <ArticleCard
-                imgUrl={article.imgUrl}
-                Heading={article.Heading}
-                date={article.date}
-                rating={article.rating}
+          <div className="space-y-4">
+            <div className="relative">
+              <input
+                id="heading"
+                type="text"
+                value={articleHeadingInput}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val.length <= 100) {
+                    setArticleHeadingInput(val);
+                    setArticleHeading(val);
+                  }
+                }}
+                className="peer w-full px-3 pt-5 pb-2 text-sm bg-background border rounded focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder=" "
               />
-            </Link>
+              <label htmlFor="heading" className="absolute left-3 top-2 text-xs text-muted-foreground transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs">
+                Heading (max 100 chars)
+              </label>
+            </div>
+
+            <div className="relative">
+              <textarea
+                id="content"
+                value={articleContentInput}
+                onChange={(e) => {
+                  setArticleContentInput(e.target.value);
+                  setArticleContent(e.target.value);
+                }}
+                rows={5}
+                placeholder=" "
+                className="peer w-full px-3 pt-5 pb-2 text-sm bg-background border rounded focus:outline-none focus:ring-2 focus:ring-ring"
+              ></textarea>
+              <label htmlFor="content" className="absolute left-3 top-2 text-xs text-muted-foreground transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs">
+                Content
+              </label>
+            </div>
+          </div>
+
+          <Drawer>
+            <DrawerTrigger asChild>
+              <Button variant="outline" className="w-full">🖼️ Add Image</Button>
+            </DrawerTrigger>
+            <DrawerContent>
+              <DrawerHeader>
+                <DrawerTitle>Select Image Type</DrawerTitle>
+              </DrawerHeader>
+              <Tabs value={tabValue} onValueChange={setTabValue} className="px-4">
+                <TabsList className="grid grid-cols-2 w-full mb-4">
+                  <TabsTrigger value="link">URL</TabsTrigger>
+                  <TabsTrigger value="file">Upload</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="file">
+                  <div className="flex flex-col items-center justify-center mb-12 gap-4">
+                    <label htmlFor="upload-file" className="cursor-pointer border border-dashed p-2 rounded text-center hover:bg-muted">
+                      {selectedFile ? selectedFile.name : "Click to upload image"}
+                    </label>
+                    <input id="upload-file" type="file" accept="image/*" className="hidden" onChange={handleFileInputChange} />
+                    {imgUrl && <img src={imgUrl} alt="preview" className="mt-4 rounded" />}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="link">
+                  <div className="flex justify-center items-center gap-2 min-h-[200px]">
+                    <Input value={imgUrlInput} onChange={(e) => setImgUrlInput(e.target.value)} placeholder="Image URL..." />
+                    <Button onClick={handleImgUrlSet}>Set</Button>
+                  </div>
+                  {imgUrlError && <p className="text-sm text-red-500 w-full -mt-12 text-center">{imgUrlError}</p>}
+                </TabsContent>
+              </Tabs>
+            </DrawerContent>
+          </Drawer>
+
+          <Button onClick={handleSaveArticleToSupabase} className="w-full">📤 Publish</Button>
+        </Card>
+
+        <Card className="p-4 space-y-4 w-full max-w-3xl mt-4">
+          <h2 className="text-lg font-semibold">Your Published Articles</h2>
+          {myArticles.length === 0 && <p className="text-sm text-muted-foreground">No articles yet.</p>}
+          {myArticles.map((a: any) => (
+            <ArticleCard key={a.id} Heading={a.Heading} date={a.date || a.created_at} imgUrl={a.imgUrl} />
           ))}
-        </div>
+        </Card>
+
+        <footer className="mt-4 text-sm text-muted-foreground">
+          🔗 <a href="https://nannuru.com" className="underline" target="_blank">Visit Nannuru.com</a>
+        </footer>
       </div>
     </>
   );
