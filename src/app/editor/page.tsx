@@ -202,7 +202,7 @@ export default function Editor() {
           {myArticles.length === 0 && <p className="text-sm text-muted-foreground">No articles yet.</p>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {myArticles.map((a: any) => (
-              <ArticleCard key={a.id} Heading={a.Heading} date={a.date || a.created_at} imgUrl={a.imgUrl} />
+              <ArticleCard key={a.id} id={a.id} Heading={a.Heading} date={a.date || a.created_at} imgUrl={a.imgUrl} />
             ))}
           </div>
         </Card>
