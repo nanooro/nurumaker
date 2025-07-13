@@ -24,7 +24,6 @@ export default function Editor() {
   const [imgUrlInput, setImgUrlInput] = useState("");
   const [imgUrl, setImgUrl] = useState("");
   const [imgUrlError, setImgUrlError] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [articleDate, setArticleDate] = useState("");
   const [tab, setTab] = useState("card");
   const [articleContentInput, setArticleContentInput] = useState("");
@@ -87,36 +86,7 @@ export default function Editor() {
     }
   };
 
-  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (!file) return;
-
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `uploads/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("article-images")
-      .upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      toast.error("Upload failed");
-      return;
-    }
-
-    const { data } = supabase.storage
-      .from("article-images")
-      .getPublicUrl(filePath);
-
-    if (data?.publicUrl) {
-      setImgUrl(data.publicUrl);
-      setSelectedFile(file);
-      toast.success("Image uploaded!");
-    }
-  };
+  
 
   const handleSaveArticleToSupabase = async () => {
     if (!articleHeading.trim()) {
@@ -211,34 +181,16 @@ export default function Editor() {
             <DrawerTrigger asChild>
               <Button variant="outline" className="w-full">🖼️ Add Image</Button>
             </DrawerTrigger>
-            <DrawerContent>
+            <DrawerContent className="p-4">
               <DrawerHeader>
                 <DrawerTitle>Select Image Type</DrawerTitle>
               </DrawerHeader>
-              <Tabs value={tabValue} onValueChange={setTabValue} className="px-4">
-                <TabsList className="grid grid-cols-2 w-full mb-4">
-                  <TabsTrigger value="link">URL</TabsTrigger>
-                  <TabsTrigger value="file">Upload</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="file">
-                  <div className="flex flex-col items-center justify-center mb-12 gap-4">
-                    <label htmlFor="upload-file" className="cursor-pointer border border-dashed p-2 rounded text-center hover:bg-muted">
-                      {selectedFile ? selectedFile.name : "Click to upload image"}
-                    </label>
-                    <input id="upload-file" type="file" accept="image/*" className="hidden" onChange={handleFileInputChange} />
-                    {imgUrl && <img src={imgUrl} alt="preview" className="mt-4 rounded" />}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="link">
-                  <div className="flex justify-center items-center gap-2 min-h-[200px]">
-                    <Input value={imgUrlInput} onChange={(e) => setImgUrlInput(e.target.value)} placeholder="Image URL..." />
-                    <Button onClick={handleImgUrlSet}>Set</Button>
-                  </div>
-                  {imgUrlError && <p className="text-sm text-red-500 w-full -mt-12 text-center">{imgUrlError}</p>}
-                </TabsContent>
-              </Tabs>
+              <div className="flex justify-center items-center gap-2 min-h-[200px] p-4">
+                <Input value={imgUrlInput} onChange={(e) => setImgUrlInput(e.target.value)} placeholder="Image URL..." />
+                <Button onClick={handleImgUrlSet}>Set</Button>
+              </div>
+              {imgUrlError && <p className="text-sm text-red-500 w-full -mt-12 text-center">{imgUrlError}</p>}
+              <p className="text-sm text-muted-foreground mt-4 text-center">You can upload images to <a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="underline">Postimages.org</a> and paste the direct link here.</p>
             </DrawerContent>
           </Drawer>
 
@@ -248,9 +200,11 @@ export default function Editor() {
         <Card className="p-4 space-y-4 w-full max-w-3xl mt-4">
           <h2 className="text-lg font-semibold">Your Published Articles</h2>
           {myArticles.length === 0 && <p className="text-sm text-muted-foreground">No articles yet.</p>}
-          {myArticles.map((a: any) => (
-            <ArticleCard key={a.id} Heading={a.Heading} date={a.date || a.created_at} imgUrl={a.imgUrl} />
-          ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {myArticles.map((a: any) => (
+              <ArticleCard key={a.id} Heading={a.Heading} date={a.date || a.created_at} imgUrl={a.imgUrl} />
+            ))}
+          </div>
         </Card>
 
         <footer className="mt-4 text-sm text-muted-foreground">
