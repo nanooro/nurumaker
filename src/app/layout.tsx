@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nannuru article creator",
+  title: "create.nannuru",
   description: "Create articles with ease using Nannuru",
 };
 
