@@ -43,29 +43,33 @@ export function EditorHeader() {
             .single();
 
           if (user) {
-          setUser(user);
-          console.log("Fetched user:", user); // Log the user object
-          // Prioritize user.display_name
-          if (user.display_name) {
-            setUserName(user.display_name);
-          } else if (user.user_metadata?.full_name) {
-            // Fallback to user_metadata.full_name
-            setUserName(user.user_metadata.full_name);
-          } else {
-            // Fallback to profiles table if not in user_metadata
-            const { data: profileData } = await supabase
+            setUser(user);
+            console.log("Fetched user:", user); // Log the user object
+
+            console.log("Attempting to fetch profile data from 'profiles' table...");
+            const { data: profileData, error: profileError } = await supabase
               .from('profiles')
               .select('full_name, avatar_url')
               .eq('id', user.id)
               .single();
 
+            if (profileError) {
+              console.error("Error fetching profile data:", profileError);
+            }
+            console.log("Profile data fetch result:", profileData); // Always log the result
+
             if (profileData) {
-              console.log("Fetched profile data:", profileData); // Log profile data
               setUserName(profileData.full_name);
               setUserAvatarUrl(profileData.avatar_url);
+            } else {
+              // Fallback to user.display_name or user_metadata if profileData is null
+              if (user.display_name) {
+                setUserName(user.display_name);
+              } else if (user.user_metadata?.full_name) {
+                setUserName(user.user_metadata.full_name);
+              }
             }
           }
-        }
         }
       } else {
         // No session, ensure user and name are reset
@@ -132,11 +136,14 @@ export function EditorHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 p-3 border rounded-lg bg-muted/20">
               {userAvatarUrl ? (
-                <img
-                  src={userAvatarUrl}
-                  alt="User Avatar"
-                  className="w-8 h-8 rounded-full object-cover border-2 border-primary"
-                />
+                <>
+                  {console.log("Rendering avatar with URL:", userAvatarUrl)}
+                  <img
+                    src={userAvatarUrl}
+                    alt="User Avatar"
+                    className="w-8 h-8 rounded-full object-cover border-2 border-primary"
+                  />
+                </>
               ) : (
                 <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xl font-bold border-2 border-primary">
                   {userName ? userName.charAt(0).toUpperCase() : <User size={20} />}

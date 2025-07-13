@@ -33,19 +33,6 @@ export default function SignUpPage() {
     setSuccess("");
     setLoading(true);
 
-    // Check if user already exists
-    const { data: existingUsers, error: fetchError } = await supabase.from('profiles').select('id').eq('email', email);
-    if (fetchError) {
-      setError(fetchError.message);
-      setLoading(false);
-      return;
-    }
-    if (existingUsers && existingUsers.length > 0) {
-      setError("User with this email already exists. Please sign in.");
-      setLoading(false);
-      return;
-    }
-
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,

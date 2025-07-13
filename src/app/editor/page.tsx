@@ -96,6 +96,7 @@ export default function Editor() {
       Heading: articleHeading,
       subHeading: articleContent,
       imgUrl,
+      date: articleDate,
       created_at: new Date().toISOString(),
       user_id: userId,
       is_archived: false,

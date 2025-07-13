@@ -5,7 +5,6 @@ const KNOWN_ACCOUNTS_KEY = "supabase_known_accounts";
 
 interface KnownAccount {
   id: string;
-  email: string;
   lastLogin: number;
 }
 
@@ -20,7 +19,6 @@ export const addKnownAccount = (user: User) => {
   const accounts = getKnownAccounts();
   const newAccount: KnownAccount = {
     id: user.id,
-    email: user.email || "",
     lastLogin: Date.now(),
   };
 
