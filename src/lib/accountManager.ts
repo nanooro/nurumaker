@@ -1,4 +1,5 @@
 import { User } from "@supabase/supabase-js";
+import { supabase } from "./supabaseClient";
 
 const KNOWN_ACCOUNTS_KEY = "supabase_known_accounts";
 
@@ -40,5 +41,18 @@ export const removeKnownAccount = (userId: string) => {
 
 export const clearKnownAccounts = () => {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(KNOWN_ACKNOWN_ACCOUNTS_KEY);
+  localStorage.removeItem(KNOWN_ACCOUNTS_KEY);
+};
+
+export const updateProfilePicture = async (userId: string, imageUrl: string) => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ avatar_url: imageUrl })
+    .eq('id', userId);
+
+  if (error) {
+    console.error('Error updating profile picture:', error);
+    return { success: false, error };
+  }
+  return { success: true, data };
 };

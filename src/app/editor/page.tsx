@@ -14,6 +14,8 @@ import ArticleCard from "@/components/ui/articleCard";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { EditorHeader } from "@/components/ui/editor-header";
 import ArticleReadComponent from "@/components/ui/articleRead";
+import { ProfilePictureInput } from "@/components/ui/profile-picture-input";
+import { updateProfilePicture } from "@/lib/accountManager";
 
 export default function Editor() {
   const router = useRouter();
@@ -30,6 +32,7 @@ export default function Editor() {
   const [articleContent, setArticleContent] = useState("");
   const [tabValue, setTabValue] = useState("file");
   const [myArticles, setMyArticles] = useState([]);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -39,6 +42,7 @@ export default function Editor() {
         setUserId(data.session.user.id);
         setLoading(false);
         fetchUserArticles(data.session.user.id);
+        fetchProfilePicture(data.session.user.id);
       }
     };
     checkAuth();
@@ -64,6 +68,32 @@ export default function Editor() {
       .eq("user_id", uid)
       .eq("is_archived", false);
     if (!error && data) setMyArticles(data);
+  };
+
+  const fetchProfilePicture = async (uid: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', uid)
+      .single();
+
+    if (error) {
+      console.error('Error fetching profile picture:', error);
+    } else if (data) {
+      setProfileImageUrl(data.avatar_url);
+    }
+  };
+
+  const handleSaveProfilePicture = async (imageUrl: string) => {
+    if (userId) {
+      const { success } = await updateProfilePicture(userId, imageUrl);
+      if (success) {
+        toast.success('Profile picture updated!');
+        setProfileImageUrl(imageUrl);
+      } else {
+        toast.error('Failed to update profile picture.');
+      }
+    }
   };
 
   const validateUrl = (url: string) => {
@@ -195,6 +225,8 @@ export default function Editor() {
           </Drawer>
 
           <Button onClick={handleSaveArticleToSupabase} className="w-full">📤 Publish</Button>
+
+          <ProfilePictureInput currentImageUrl={profileImageUrl} onSave={handleSaveProfilePicture} />
         </Card>
 
         <Card className="p-4 space-y-4 w-full max-w-3xl mt-4">
