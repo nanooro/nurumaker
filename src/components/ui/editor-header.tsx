@@ -23,8 +23,7 @@ import { useRouter } from "next/navigation";
 export function EditorHeader() {
   const [user, setUser] = useState<any>(null);
   const [userName, setUserName] = useState<string | null>(null);
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [tempUserName, setTempUserName] = useState("");
+  const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [knownAccounts, setKnownAccounts] = useState<any[]>([]);
   const router = useRouter();
@@ -49,11 +48,9 @@ export function EditorHeader() {
           // Prioritize user.display_name
           if (user.display_name) {
             setUserName(user.display_name);
-            setTempUserName(user.display_name);
           } else if (user.user_metadata?.full_name) {
             // Fallback to user_metadata.full_name
             setUserName(user.user_metadata.full_name);
-            setTempUserName(user.user_metadata.full_name);
           } else {
             // Fallback to profiles table if not in user_metadata
             const { data: profileData } = await supabase
@@ -65,22 +62,7 @@ export function EditorHeader() {
             if (profileData) {
               console.log("Fetched profile data:", profileData); // Log profile data
               setUserName(profileData.full_name);
-              setTempUserName(profileData.full_name || "");
-            }
-          }
-
-          if (user.user_metadata?.avatar_url) {
-            const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(user.user_metadata.avatar_url);
-            setUserAvatarUrl(publicUrlData.publicUrl);
-          } else {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('avatar_url')
-              .eq('id', user.id)
-              .single();
-            if (profileData?.avatar_url) {
-              const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(profileData.avatar_url);
-              setUserAvatarUrl(publicUrlData.publicUrl);
+              setUserAvatarUrl(profileData.avatar_url);
             }
           }
         }
@@ -89,7 +71,6 @@ export function EditorHeader() {
         // No session, ensure user and name are reset
         setUser(null);
         setUserName(null);
-        setTempUserName("");
         setUserAvatarUrl(null);
       }
       setKnownAccounts(getKnownAccounts());
@@ -112,50 +93,17 @@ export function EditorHeader() {
   }, []); // Empty dependency array for initial load and listener setup
 
   useEffect(() => {
-    if (!loading && user && (!userName || userName.trim() === '') && !isEditingName) {
+    if (!loading && user && (!userName || userName.trim() === '')) {
       toast.info("Please set your username!", {
         action: {
           label: "Set Now",
-          onClick: () => setIsEditingName(true),
+          onClick: () => router.push("/profile"),
         },
         duration: Infinity, // Make it sticky
         id: "set-username-toast", // Add an ID to prevent duplicates
       });
     }
-  }, [loading, user, userName, isEditingName]);
-
-  const handleSaveName = async () => {
-    if (!user || !tempUserName.trim()) return;
-
-    setLoading(true);
-    const { error: updateProfileError } = await supabase
-      .from('profiles')
-      .update({ full_name: tempUserName.trim() })
-      .eq('id', user.id);
-
-    if (updateProfileError) {
-      toast.error("Failed to update username: " + updateProfileError.message);
-      setLoading(false);
-      return;
-    }
-
-    // Also update user_metadata and display_name
-    const { error: updateUserError } = await supabase.auth.updateUser({
-      data: { full_name: tempUserName.trim() },
-      display_name: tempUserName.trim(),
-    });
-
-    if (updateUserError) {
-      toast.error("Failed to update user metadata: " + updateUserError.message);
-      setLoading(false);
-      return;
-    }
-
-    setUserName(tempUserName.trim());
-    setIsEditingName(false);
-    toast.success("Username updated successfully!");
-    setLoading(false);
-  };
+  }, [loading, user, userName]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -183,47 +131,36 @@ export function EditorHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 p-3 border rounded-lg bg-muted/20">
-              <User className="h-5 w-5" />
+              {userAvatarUrl ? (
+                <img
+                  src={userAvatarUrl}
+                  alt="User Avatar"
+                  className="w-8 h-8 rounded-full object-cover border-2 border-primary"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xl font-bold border-2 border-primary">
+                  {userName ? userName.charAt(0).toUpperCase() : <User size={20} />}
+                </div>
+              )}
               <span className="font-medium text-sm hidden sm:block">{userName || "Guest"}</span>
               <ChevronDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {isEditingName ? (
-              <div className="p-2 flex flex-col gap-2">
-                <input
-                  type="text"
-                  value={tempUserName}
-                  onChange={(e) => setTempUserName(e.target.value)}
-                  className="w-full p-1 border rounded text-sm bg-background"
-                  placeholder="Your Name"
-                />
-                <Button size="sm" onClick={handleSaveName} disabled={loading}>
-                  {loading ? "Saving..." : "Save Name"}
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setIsEditingName(false)}>
-                  Cancel
-                </Button>
-              </div>
-            ) : (
-              <>
-                {knownAccounts.map((account) => (
-                  <DropdownMenuItem key={account.id} onClick={() => handleSwitchAccount(account.email)}>
-                    {account.email} {account.id === user?.id && "(Current)"}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>Settings</DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuItem onClick={() => setIsEditingName(true)}>Set Name</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push("/profile")}>Profile Settings</DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleAddAccount}>Add Another Account</DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              </>
-            )}
+            {knownAccounts.map((account) => (
+              <DropdownMenuItem key={account.id} onClick={() => handleSwitchAccount(account.email)}>
+                {account.email} {account.id === user?.id && "(Current)"}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>Settings</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem onClick={() => router.push("/profile")}>Profile Settings</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleAddAccount}>Add Another Account</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
           </DropdownMenuContent>
         </DropdownMenu>
         <ThemeToggle />

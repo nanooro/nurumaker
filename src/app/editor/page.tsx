@@ -39,7 +39,32 @@ export default function Editor() {
         setUserId(data.session.user.id);
         setLoading(false);
         fetchUserArticles(data.session.user.id);
-        
+      }
+    };
+    checkAuth();
+
+    const now = new Date();
+    setArticleDate(
+      now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+    );
+
+    const saved = localStorage.getItem("savedArticle");
+    if (saved) {
+      const data = JSON.parse(saved);
+      setArticleHeading(data.heading);
+      setImgUrl(data.imgUrl);
+      setArticleDate(data.date);
+    }
+  }, [router]);
+
+  const fetchUserArticles = async (uid: string) => {
+    const { data, error } = await supabase
+      .from("Nannuru_articles_table")
+      .select("*")
+      .eq("user_id", uid)
+      .eq("is_archived", false);
+    if (!error && data) setMyArticles(data);
+  };
 
   const validateUrl = (url: string) => {
     try {
@@ -60,8 +85,6 @@ export default function Editor() {
       toast.error("Invalid image URL");
     }
   };
-
-  
 
   const handleSaveArticleToSupabase = async () => {
     if (!articleHeading.trim()) {
@@ -170,8 +193,6 @@ export default function Editor() {
           </Drawer>
 
           <Button onClick={handleSaveArticleToSupabase} className="w-full">📤 Publish</Button>
-
-          
         </Card>
 
         <Card className="p-4 space-y-4 w-full max-w-3xl mt-4">
