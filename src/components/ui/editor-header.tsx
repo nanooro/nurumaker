@@ -25,9 +25,6 @@ export function EditorHeader() {
   const [userName, setUserName] = useState<string | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempUserName, setTempUserName] = useState("");
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
-  const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [knownAccounts, setKnownAccounts] = useState<any[]>([]);
   const router = useRouter();
@@ -127,55 +124,6 @@ export function EditorHeader() {
     }
   }, [loading, user, userName, isEditingName]);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (file) {
-      setAvatarFile(file);
-      setAvatarPreviewUrl(URL.createObjectURL(file));
-    } else {
-      setAvatarFile(null);
-      setAvatarPreviewUrl(null);
-    }
-  };
-
-  const handleAvatarUpload = async () => {
-    if (!user || !avatarFile) return;
-
-    setLoading(true);
-    const fileExt = avatarFile.name.split('.').pop();
-    const filePath = `${user.id}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(filePath, avatarFile, { cacheControl: '3600', upsert: true });
-
-    if (uploadError) {
-      toast.error("Failed to upload avatar: " + uploadError.message);
-      setLoading(false);
-      return;
-    }
-
-    const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-    const newAvatarUrl = publicUrlData.publicUrl;
-
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ avatar_url: filePath })
-      .eq('id', user.id);
-
-    if (updateError) {
-      toast.error("Failed to update profile: " + updateError.message);
-      setLoading(false);
-      return;
-    }
-
-    setUserAvatarUrl(newAvatarUrl);
-    setAvatarFile(null);
-    setAvatarPreviewUrl(null);
-    setLoading(false);
-    toast.success("Avatar updated successfully!");
-  };
-
   const handleSaveName = async () => {
     if (!user || !tempUserName.trim()) return;
 
@@ -235,37 +183,7 @@ export function EditorHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 p-3 border rounded-lg bg-muted/20">
-              <div className="relative w-10 h-10">
-                <label htmlFor="avatar-upload" className="cursor-pointer block w-full h-full">
-                  {avatarPreviewUrl || userAvatarUrl ? (
-                    <img
-                      src={avatarPreviewUrl || userAvatarUrl}
-                      alt="User Avatar"
-                      className="w-10 h-10 rounded-full object-cover border-2 border-primary"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xl font-bold border-2 border-primary">
-                      {userName ? userName.charAt(0).toUpperCase() : <User size={20} />}
-                    </div>
-                  )}
-                </label>
-                <input
-                  id="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
-                {avatarFile && (
-                  <Button
-                    onClick={handleAvatarUpload}
-                    disabled={loading}
-                    className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full p-0 text-xs"
-                  >
-                    {loading ? "..." : "⬆️"}
-                  </Button>
-                )}
-              </div>
+              <User className="h-5 w-5" />
               <span className="font-medium text-sm hidden sm:block">{userName || "Guest"}</span>
               <ChevronDown className="h-4 w-4" />
             </Button>
@@ -299,7 +217,7 @@ export function EditorHeader() {
                   <DropdownMenuSubTrigger>Settings</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
                     <DropdownMenuItem onClick={() => setIsEditingName(true)}>Set Name</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => document.getElementById('avatar-upload')?.click()}>Upload Profile Picture</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push("/profile")}>Profile Settings</DropdownMenuItem>
                     <DropdownMenuItem onClick={handleAddAccount}>Add Another Account</DropdownMenuItem>
                     <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                   </DropdownMenuSubContent>
