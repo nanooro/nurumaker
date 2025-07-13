@@ -14,7 +14,7 @@ export default function ArticleCard({
       id="articlesWrapper"
     >
       <div
-        className="bg-white dark:bg-black w-[250px] rounded-xl shadow transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+        className="bg-white dark:bg-gray-800 w-[250px] rounded-xl shadow transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
         aria-label="card-overlay-v3"
       >
         <div className="w-full rounded-xl h-[250px] flex-shrink-0 relative overflow-hidden">
