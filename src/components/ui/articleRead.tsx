@@ -34,7 +34,7 @@ export default function Editor() {
   useEffect(() => {
     const checkAuth = async () => {
       const { data } = await supabase.auth.getSession();
-      if (!data.session) router.replace("/login");
+      if (!data.session) router.replace("/auth/login");
       else {
         setUserId(data.session.user.id);
         setLoading(false);
