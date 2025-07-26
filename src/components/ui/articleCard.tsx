@@ -12,7 +12,7 @@ export default function ArticleCard({
   rating,
 }) {
   return (
-    <Link href={`https://nannuru.com/article/${id}`}>
+    <Link href={`https://nannuru.com/articles/${id}`}>
       <div
         className="gap-5 justify-center items-center w-full h-auto flex flex-wrap"
         id="articlesWrapper"
