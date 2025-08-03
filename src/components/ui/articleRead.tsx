@@ -14,7 +14,7 @@ const ArticleReadComponent: React.FC<ArticleReadProps> = ({ heading, date, imgUr
       <p className="text-sm text-gray-500 mb-4">{date}</p>
       {imgUrl && <img src={imgUrl} alt={heading} className="w-full h-auto rounded-lg mb-4" />} 
       <div className="prose dark:prose-invert max-w-none">
-        {content}
+        <div dangerouslySetInnerHTML={{ __html: content }} />
       </div>
     </div>
   );
